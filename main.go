@@ -26,6 +26,9 @@ func main() {
 	}
 
 	pduService := service.NewPDUService(cfg)
+	pduService.Start()
+	defer pduService.Stop()
+
 	pduHandler := handler.NewPDUHandler(pduService)
 
 	gin.SetMode(gin.ReleaseMode)

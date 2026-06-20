@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type PortPowerState int
 
 const (
@@ -35,6 +37,7 @@ type PDUDevice struct {
 	Online      bool      `json:"online"`
 	TotalPower  float64   `json:"total_power_watts"`
 	Ports       []PDUPort `json:"ports"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 type APIResponse struct {

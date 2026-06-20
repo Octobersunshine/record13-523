@@ -8,16 +8,25 @@ import (
 )
 
 const (
-	OIDPortName       = "1.3.6.1.4.1.318.1.1.12.3.3.1.1.2"
-	OIDPortStatus     = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.4"
-	OIDPortVoltage    = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.6"
-	OIDPortCurrent    = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.7"
-	OIDPortPower      = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.9"
+	OIDPortName         = "1.3.6.1.4.1.318.1.1.12.3.3.1.1.2"
+	OIDPortStatus       = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.4"
+	OIDPortVoltage      = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.6"
+	OIDPortCurrent      = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.7"
+	OIDPortPower        = "1.3.6.1.4.1.318.1.1.12.3.5.1.1.9"
 	OIDDeviceTotalPower = "1.3.6.1.4.1.318.1.1.12.1.16"
 )
 
 type Client struct {
-	handler *gosnmp.GoSNMP
+	handler    *gosnmp.GoSNMP
+	fastMode   bool
+	fastParams struct {
+		timeout time.Duration
+		retries int
+	}
+	normalParams struct {
+		timeout time.Duration
+		retries int
+	}
 }
 
 func NewClient(address, community string, timeoutSec, retries int) *Client {
@@ -29,7 +38,29 @@ func NewClient(address, community string, timeoutSec, retries int) *Client {
 		Timeout:   time.Duration(timeoutSec) * time.Second,
 		Retries:   retries,
 	}
-	return &Client{handler: handler}
+	c := &Client{handler: handler}
+	c.normalParams.timeout = time.Duration(timeoutSec) * time.Second
+	c.normalParams.retries = retries
+	c.fastParams.timeout = time.Duration(timeoutSec) * time.Second
+	c.fastParams.retries = retries
+	return c
+}
+
+func (c *Client) SetFastMode(timeoutSec, retries int) {
+	c.fastParams.timeout = time.Duration(timeoutSec) * time.Second
+	c.fastParams.retries = retries
+}
+
+func (c *Client) EnableFastMode() {
+	c.fastMode = true
+	c.handler.Timeout = c.fastParams.timeout
+	c.handler.Retries = c.fastParams.retries
+}
+
+func (c *Client) EnableNormalMode() {
+	c.fastMode = false
+	c.handler.Timeout = c.normalParams.timeout
+	c.handler.Retries = c.normalParams.retries
 }
 
 func (c *Client) Connect() error {
@@ -38,6 +69,25 @@ func (c *Client) Connect() error {
 
 func (c *Client) Close() {
 	c.handler.Conn.Close()
+}
+
+func (c *Client) QuickPing() bool {
+	prevTimeout := c.handler.Timeout
+	prevRetries := c.handler.Retries
+	c.handler.Timeout = c.fastParams.timeout
+	c.handler.Retries = c.fastParams.retries
+	defer func() {
+		c.handler.Timeout = prevTimeout
+		c.handler.Retries = prevRetries
+	}()
+
+	if err := c.handler.Connect(); err != nil {
+		return false
+	}
+	defer c.handler.Conn.Close()
+
+	_, err := c.handler.Get([]string{"1.3.6.1.2.1.1.1.0"})
+	return err == nil
 }
 
 func (c *Client) IsReachable() bool {

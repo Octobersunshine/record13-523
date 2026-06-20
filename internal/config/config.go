@@ -11,6 +11,13 @@ type SNMPConfig struct {
 	Retries   int    `json:"retries"`
 }
 
+type RefreshConfig struct {
+	NormalIntervalSec int `json:"normal_interval_sec"`
+	FastIntervalSec   int `json:"fast_interval_sec"`
+	FastTimeoutSec    int `json:"fast_timeout_sec"`
+	FastRetries       int `json:"fast_retries"`
+}
+
 type PDUDeviceConfig struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
@@ -23,8 +30,9 @@ type ServerConfig struct {
 }
 
 type Config struct {
-	Server ServerConfig     `json:"server"`
-	SNMP   SNMPConfig       `json:"snmp"`
+	Server  ServerConfig     `json:"server"`
+	SNMP    SNMPConfig       `json:"snmp"`
+	Refresh RefreshConfig    `json:"refresh"`
 	Devices []PDUDeviceConfig `json:"devices"`
 }
 
@@ -35,8 +43,14 @@ func Default() *Config {
 		},
 		SNMP: SNMPConfig{
 			Community: "public",
-			Timeout:   5,
-			Retries:   2,
+			Timeout:   3,
+			Retries:   1,
+		},
+		Refresh: RefreshConfig{
+			NormalIntervalSec: 30,
+			FastIntervalSec:   3,
+			FastTimeoutSec:    1,
+			FastRetries:       0,
 		},
 		Devices: []PDUDeviceConfig{
 			{ID: "pdu-01", Name: "Cabinet-A PDU", Address: "192.168.1.100", PortCount: 8},
