@@ -99,11 +99,28 @@ func (h *PDUHandler) GetPowerData(c *gin.Context) {
 	})
 }
 
+func (h *PDUHandler) GetAnomalies(c *gin.Context) {
+	result, err := h.svc.AnalyzeAnomalies()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.APIResponse{
+			Code:    500,
+			Message: err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, model.APIResponse{
+		Code:    0,
+		Message: "success",
+		Data:    result,
+	})
+}
+
 func RegisterRoutes(r *gin.Engine, h *PDUHandler) {
 	v1 := r.Group("/api/v1/pdu")
 	{
 		v1.GET("/ports", h.GetAllPorts)
 		v1.GET("/online", h.GetOnlineDevices)
 		v1.GET("/power", h.GetPowerData)
+		v1.GET("/anomalies", h.GetAnomalies)
 	}
 }
